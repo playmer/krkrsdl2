@@ -60,7 +60,7 @@ set(SWITCH_VERSION  "v2.0.0")
 endif()
 endif()
 
-file(STRINGS src/config/src_list/kirikirisdl2/sources.txt KIRIKIRISDL2_SRC)
+include(src/config/src_list/kirikirisdl2/sources.cmake)
 file(STRINGS src/config/src_list/kirikirisdl2/includes.txt KIRIKIRISDL2_INCLUDES)
 
 list(APPEND KRKRSDL2_SRC ${KIRIKIRISDL2_SRC})
@@ -122,9 +122,11 @@ list(APPEND KRKRSDL2_CFLAGS
 
 list(APPEND KRKRSDL2_CXXFLAGS ${KRKRSDL2_CFLAGS})
 
+if (NOT MSVC)
 list(APPEND KRKRSDL2_CXXFLAGS
 	-Wno-non-virtual-dtor
 )
+endif()
 
 if(OPTION_ENABLE_CASEINSENSITIVITY)
 list(APPEND KRKRSDL2_CXXFLAGS
@@ -135,12 +137,6 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 list(APPEND KRKRSDL2_CXXFLAGS
 	-fno-delete-null-pointer-checks
-)
-endif()
-
-if(LINUX OR ANDROID)
-list(APPEND KRKRSDL2_LDFLAGS
-	-pthread
 )
 endif()
 
@@ -209,6 +205,42 @@ list(APPEND KRKRSDL2_LIBS
 list(APPEND KRKRSDL2_CXXFLAGS
 	-DKRKRZ_USE_SDL_THREADS
 )
+elseif(MSVC)
+set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+add_subdirectory(external/SDL)
+find_library(SDL2 NAMES SDL2-static)
+
+list(APPEND KRKRSDL2_INCLUDES
+	external/dirent/include
+)
+
+#list(APPEND KRKRSDL2_INCLUDES
+#	external/krkrz/environ/win32/
+#	external/krkrz/visual/win32/
+#)
+#
+#list(APPEND KRKRSDL2_SRC
+#	external/krkrz/environ/win32/WindowFormUnit.cpp
+#	external/krkrz/environ/win32/WindowFormUnit.h
+#	external/krkrz/visual/win32/GDIFontRasterizer.cpp
+#	external/krkrz/visual/win32/GDIFontRasterizer.h
+#)
+
+
+list(APPEND KRKRSDL2_LIBS
+	SDL2-static
+	SDL2main
+)
+list(APPEND KRKRSDL2_CXXFLAGS
+	-DUNICODE
+	-DUSE_SDL_MAIN
+	-D_HAS_STD_BYTE=0
+	-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
+	/Zc:preprocessor
+	/MP # Multiprocessor compilation
+)
+
+target_compile_options(SDL2-static PRIVATE /MP)
 else()
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
@@ -217,6 +249,19 @@ list(APPEND KRKRSDL2_LIBS
 	${SDL2_LIBRARIES}
 )
 endif()
+
+
+if(LINUX OR ANDROID)
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+
+list(APPEND KRKRSDL2_CXXFLAGS
+-B/usr/libexec/mold
+)
+endif()
+
+
+find_package(Threads REQUIRED)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -231,11 +276,14 @@ endif()
 target_sources(${KRKRSDL2_NAME} PRIVATE ${KRKRSDL2_SRC})
 target_compile_options(${KRKRSDL2_NAME} PUBLIC $<$<COMPILE_LANGUAGE:C>:${KRKRSDL2_CFLAGS}>)
 target_compile_options(${KRKRSDL2_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${KRKRSDL2_CXXFLAGS}>)
+target_compile_features(${KRKRSDL2_NAME} PUBLIC cxx_std_17)
 target_include_directories(${KRKRSDL2_NAME} PUBLIC ${KRKRSDL2_INCLUDES})
-target_link_libraries(${KRKRSDL2_NAME} ${KRKRSDL2_LIBS})
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.16.0") 
+target_link_libraries(${KRKRSDL2_NAME} ${KRKRSDL2_LIBS} Threads::Threads)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.16.0" AND NOT MSVC) 
 target_precompile_headers(${KRKRSDL2_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/sdl2/SDLPrecompiledHeader.h)
 endif()
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${KRKRSDL2_SRC})
 
 if(IOS)
 set_target_properties(${KRKRSDL2_NAME} PROPERTIES

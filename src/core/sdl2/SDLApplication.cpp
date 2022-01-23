@@ -1,9 +1,7 @@
 
+#include "VirtualKey.h" // Needs to be first so codes don't get overridden on Win32.
 #include "tjsCommHead.h"
 #include "WindowImpl.h"
-#ifndef _WIN32
-#include "VirtualKey.h"
-#endif
 #include "Application.h"
 #include "SystemImpl.h"
 #include "TVPWindow.h"
@@ -26,8 +24,9 @@
 #include <SDL_main.h>
 #endif
 
+#ifndef _WIN32
 #include <unistd.h>
-
+#endif
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -808,10 +807,12 @@ void TVPWindowLayer::SetPaintBoxSize(tjs_int w, tjs_int h) {
 	}
 }
 
+#ifndef _WIN32
 static int MulDiv(int nNumber, int nNumerator, int nDenominator)
 {
 	return (int)(((int64_t)nNumber * (int64_t)nNumerator) / nDenominator);
 }
+#endif
 
 void TVPWindowLayer::TranslateWindowToDrawArea(int &x, int &y)
 {
@@ -2390,7 +2391,7 @@ extern "C" int main(int argc, char **argv)
 	for (int i = 0; i < argc; i += 1)
 	{
 		const char* narg;
-#if !defined(__EMSCRIPTEN__) && !defined(__vita__) && !defined(__SWITCH__)
+#if !defined(__EMSCRIPTEN__) && !defined(__vita__) && !defined(__SWITCH__) && !defined(_WIN32)
 		if (!i)
 		{
 			narg = realpath(argv[i], NULL);
@@ -2410,7 +2411,7 @@ extern "C" int main(int argc, char **argv)
 		std::string v_utf8 = narg;
 		tjs_string v_utf16;
 		TVPUtf8ToUtf16( v_utf16, v_utf8 );
-#if !defined(__EMSCRIPTEN__) && !defined(__vita__) && !defined(__SWITCH__)
+#if !defined(__EMSCRIPTEN__) && !defined(__vita__) && !defined(__SWITCH__) && !defined(_WIN32)
 		if (!i)
 		{
 			free((void*)narg);
@@ -2422,7 +2423,7 @@ extern "C" int main(int argc, char **argv)
 		_wargv[i] = warg_copy;
 	}
 
-	setenv("DBUS_FATAL_WARNINGS", "0", 1);
+	SDL_setenv("DBUS_FATAL_WARNINGS", "0", 1);
 
 	TVPLoadMessage();
 

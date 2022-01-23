@@ -5,6 +5,8 @@
 #if 0
 #include <shlobj.h>
 #endif
+
+#include "CharacterSet.h"
 #include "FilePathUtil.h"
 #include "StorageIntf.h"
 #include <SDL.h>

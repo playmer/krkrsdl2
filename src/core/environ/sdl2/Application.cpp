@@ -50,9 +50,13 @@
 #include "WindowImpl.h"
 #ifndef _WIN32
 #include "VirtualKey.h"
+#include <unistd.h>
+#else
+#include <io.h>
+#define isatty _isatty
+#undef GetMessage
 #endif
 #include "TVPWindow.h"
-#include <unistd.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -110,7 +114,9 @@ static MemoryLeaksDebugBreakPoint gMemoryLeaksDebugBreakPoint;
 #endif
 #endif
 
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE

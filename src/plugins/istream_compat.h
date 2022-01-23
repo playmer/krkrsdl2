@@ -11,6 +11,8 @@
 #include "BinaryStream.h"
 #include "MsgIntf.h"
 
+
+#ifndef _WIN32
 #define STDMETHODCALLTYPE
 #define ULONG tjs_uint
 #define ULONGLONG tjs_uint
@@ -65,6 +67,8 @@ public:
 
 };
 
+#endif
+
 //---------------------------------------------------------------------------
 // tTVPIStreamAdapter
 //---------------------------------------------------------------------------
@@ -78,6 +82,39 @@ private:
 	ULONG RefCount;
 
 public:
+
+#ifdef _WIN32
+	HRESULT STDMETHODCALLTYPE SetSize(/* [in] */ ULARGE_INTEGER /*libNewSize*/) override
+	{
+		return E_NOTIMPL;
+	}
+	/* [local] */ HRESULT STDMETHODCALLTYPE CopyTo(/* [annotation][unique][in] */_In_  IStream* /*pstm*/,/* [in] */ ULARGE_INTEGER /*cb*/,/* [annotation] */_Out_opt_  ULARGE_INTEGER* /*pcbRead*/,/* [annotation] */_Out_opt_  ULARGE_INTEGER* /*pcbWritten*/) override
+	{
+		return E_NOTIMPL;
+	}
+	
+	HRESULT STDMETHODCALLTYPE Revert(void) override
+	{
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE LockRegion(/* [in] */ ULARGE_INTEGER /*libOffset*/,/* [in] */ ULARGE_INTEGER /*cb*/,/* [in] */ DWORD /*dwLockType*/) override
+	{
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE UnlockRegion(/* [in] */ ULARGE_INTEGER /*libOffset*/,/* [in] */ ULARGE_INTEGER /*cb*/,/* [in] */ DWORD /*dwLockType*/) override
+	{
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE Clone(/* [out] */ __RPC__deref_out_opt IStream** /*ppstm*/) override
+	{
+		return E_NOTIMPL;
+	}
+#endif
+
+
 	tTVPIStreamAdapter(iTJSBinaryStream *ref)
 	{
 		Stream = ref;
@@ -184,6 +221,34 @@ public:
 	{
 		return E_NOTIMPL;
 	}
+
+	void ClearStream()
+	{
+		Stream = NULL;
+	}
+
+#ifdef _WIN32
+	HRESULT QueryInterface(REFIID riid,
+		void** ppvObject)
+	{
+		if (!ppvObject) return E_INVALIDARG;
+
+		*ppvObject = NULL;
+		if (!memcmp(&riid, &IID_IUnknown, 16))
+			*ppvObject = (IUnknown*)this;
+		else if (!memcmp(&riid, &IID_ISequentialStream, 16))
+			*ppvObject = (ISequentialStream*)this;
+		else if (!memcmp(&riid, &IID_IStream, 16))
+			*ppvObject = (IStream*)this;
+
+		if (*ppvObject)
+		{
+			AddRef();
+			return S_OK;
+		}
+		return E_NOINTERFACE;
+	}
+
 	HRESULT STDMETHODCALLTYPE Stat(STATSTG *pstatstg, DWORD grfStatFlag)
 	{
 		// This method imcompletely fills the target structure, because some
@@ -191,6 +256,56 @@ public:
 		// at this point.
 
 		if(pstatstg)
+		{
+			ZeroMemory(pstatstg, sizeof(*pstatstg));
+
+			// pwcsName
+			// this object's storage pointer does not have a name ...
+			if(!(grfStatFlag &  STATFLAG_NONAME))
+			{
+				// anyway returns an empty string
+				LPWSTR str = (LPWSTR)CoTaskMemAlloc(sizeof(*str));
+				if(str == NULL) return E_OUTOFMEMORY;
+				*str = TJS_W('\0');
+				pstatstg->pwcsName = str;
+			}
+
+			// type
+			pstatstg->type = STGTY_STREAM;
+
+			// cbSize
+			pstatstg->cbSize.QuadPart = Stream->GetSize();
+
+			// mtime, ctime, atime unknown
+
+			// grfMode unknown
+			pstatstg->grfMode = STGM_DIRECT | STGM_READWRITE | STGM_SHARE_DENY_WRITE ;
+				// Note that this method always returns flags above, regardless of the
+				// actual mode.
+				// In the return value, the stream is to be indicated that the
+				// stream can be written, but of cource, the Write method will fail
+				// if the stream is read-only.
+
+			// grfLockSuppoted
+			pstatstg->grfLocksSupported = 0;
+
+			// grfStatBits unknown
+		}
+		else
+		{
+			return E_INVALIDARG;
+		}
+
+		return S_OK;
+	}
+#else
+	HRESULT STDMETHODCALLTYPE Stat(STATSTG* pstatstg, DWORD grfStatFlag)
+	{
+		// This method imcompletely fills the target structure, because some
+		// informations like access mode or stream name are already lost
+		// at this point.
+
+		if (pstatstg)
 		{
 			memset(pstatstg, 0, sizeof(*pstatstg));
 
@@ -204,17 +319,36 @@ public:
 
 		return S_OK;
 	}
-
-	void ClearStream()
-	{
-		Stream = NULL;
-	}
+#endif
 };
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
 // IStream creator
 //---------------------------------------------------------------------------
+
+
+#ifdef _WIN32
+inline IStream* TVPCreateIStream(const ttstr& name, tjs_uint32 flags)
+{
+	// convert tTJSBinaryStream to IStream thru TStream
+
+	tTJSBinaryStream* stream0 = NULL;
+	try
+	{
+		stream0 = TVPCreateStream(name, flags);
+	}
+	catch (...)
+	{
+		if (stream0) delete stream0;
+		return NULL;
+	}
+
+	IStream* istream = new tTVPIStreamAdapter(stream0);
+
+	return istream;
+}
+#else
 inline IStream * TVPCreateIStream(const ttstr &name, tjs_uint32 flags)
 {
 	// convert tTJSBinaryStream to IStream thru TStream
@@ -261,6 +395,7 @@ inline IStream * TVPCreateIStream(const ttstr &name, tjs_uint32 flags)
 
 	return istream;
 }
+#endif
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------

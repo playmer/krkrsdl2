@@ -58,6 +58,12 @@
 #include <sys/sysctl.h>
 #endif
 
+#ifdef _WIN32
+#include <Windows.h>
+#include <direct.h>
+#define getcwd _getcwd
+#endif
+
 //---------------------------------------------------------------------------
 // global data
 //---------------------------------------------------------------------------

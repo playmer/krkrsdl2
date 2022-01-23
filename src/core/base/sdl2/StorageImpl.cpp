@@ -25,10 +25,19 @@
 #include "FilePathUtil.h"
 #include "TickCount.h"
 
+#include <dirent.h>
+
+#ifdef _MSC_VER 
+#include <direct.h>
+//not #if defined(_WIN32) || defined(_WIN64) because we have strncasecmp in mingw
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#define rmdir _rmdir
+#endif
+
 #ifndef _WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #include <unistd.h>
 #endif
 
@@ -736,6 +745,8 @@ static bool _TVPCreateFolders(const ttstr &folder)
 	if( TVPUtf16ToUtf8( filename, folder.AsStdString() ) ) {
 #if defined(__vita__)
 		res = sceIoMkdir( filename.c_str(), 0777 );
+#elif defined (_WIN32)
+		res = mkdir(filename.c_str());
 #else
 		res = mkdir( filename.c_str(), 0777 );
 #endif

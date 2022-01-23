@@ -7,6 +7,9 @@
 #include <unordered_set>
 #include <cassert>
 
+#undef min
+#undef max
+
 class tTVPAudioRenderer;
 static tTVPAudioRenderer *TVPAudioRenderer;
 

@@ -5,6 +5,9 @@
 
 	See details of license at "license.txt"
 */
+
+#include <string>
+
 //---------------------------------------------------------------------------
 // Definition of Messages and Message Related Utilities
 //---------------------------------------------------------------------------
@@ -102,9 +105,7 @@ ttstr TVPReadAboutStringFromResource() {
 	}
 	return ret;
 #endif
-	const char *buf = NULL;
-	unsigned int size = 0;
-	buf = R"__LICENSE_TEXT__(
+    const char L1[] = R"__LICENSE_TEXT__(
 吉里吉里[きりきり] SDL2 実行コア version %1 ( TJS version %2 )
 Compiled on %DATE% %TIME%
 Copyright (C) 2019-2021 Julian Uy
@@ -337,6 +338,11 @@ certification mark of the Open Source Initiative.
 Glenn Randers-Pehrson
 glennrp at users.sourceforge.net
 March 28, 2013
+
+)__LICENSE_TEXT__";
+
+
+const char L2[] = R"__LICENSE_TEXT__(
 ------------------------------------------------------------------------------
 zlib LICENSE
 
@@ -604,6 +610,8 @@ picojson LICENSE
  *
  */
 
+)__LICENSE_TEXT__";
+const char L3[] = R"__LICENSE_TEXT__(
 ------------------------------------------------------------------------------
 
    Copyright (c) 2012, The Android Open Source Project
@@ -794,7 +802,6 @@ picojson LICENSE
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
-
 ------------------------------------------------------------------------------
 Microsoft Corporation Technical Documentation License Agreement for the specification “JPEG XR Device Porting Kit”
 Copyright (c) 2013 Microsoft Corp.
@@ -869,6 +876,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+)__LICENSE_TEXT__";
+
+      const char L4[] = R"__LICENSE_TEXT__(
 ------------------------------------------------------------------------
 *** libfishsound
 *** dsfSeeking
@@ -902,6 +912,7 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 ------------------------------------------------------------------------ 
 *** libCMMLParse
@@ -1119,6 +1130,8 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 ------------------------------------------------------------------------
+)__LICENSE_TEXT__";
+   const char L5[] = R"__LICENSE_TEXT__(
 libogg license
 Copyright (c) 2002, Xiph.org Foundation
 
@@ -1360,13 +1373,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
       )__LICENSE_TEXT__";
-    size_t len = TVPUtf8ToWideCharString( buf, size, NULL );
+
+    std::string buf;
+    buf.reserve(sizeof(L1) + sizeof(L2) + sizeof(L3) + sizeof(L4) + sizeof(L5));
+    buf.append(L1);
+    buf.append(L2);
+    buf.append(L3);
+    buf.append(L4);
+    buf.append(L5);
+
+    size_t len = TVPUtf8ToWideCharString( buf.c_str(), buf.size(), NULL);
 	if( len < 0 ) return ttstr(TJS_W("UTF-8 conversion error."));
 	tjs_char* tmp = new tjs_char[len+1];
 	ttstr ret;
 	if( tmp ) {
 		try {
-			len = TVPUtf8ToWideCharString( buf, size, tmp );
+			len = TVPUtf8ToWideCharString(buf.c_str(), buf.size(), tmp );
 		} catch(...) {
 			delete[] tmp;
 			throw;
