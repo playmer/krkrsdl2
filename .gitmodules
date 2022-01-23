@@ -12,7 +12,7 @@
 	url = https://github.com/playmer/wuvorbis.git
 [submodule "external/simde"]
 	path = external/simde
-	url = https://github.com/playmer/simde.git
+	url = https://github.com/simd-everywhere/simde.git
 [submodule "external/meson_toolchains"]
 	path = external/meson_toolchains
 	url = https://github.com/krkrsdl2/meson_toolchains.git
